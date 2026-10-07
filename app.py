@@ -3,6 +3,30 @@ import requests
 import base64
 from datetime import datetime
 
+# 1. Konfigurasi Halaman (HARUS DI BARIS PALING ATAS setelah import)
+st.set_page_config(
+    page_title="Jurnal Plantdex",
+    page_icon="🌿",
+    layout="centered", # Bisa diubah ke "wide" kalau ingin lebar penuh
+    initial_sidebar_state="expanded"
+)
+
+# 2. CSS Khusus untuk menyembunyikan menu bawaan Streamlit dan mempercantik tombol
+hide_st_style = """
+            <style>
+            #MainMenu {visibility: hidden;}
+            footer {visibility: hidden;}
+            header {visibility: hidden;}
+            /* Mempercantik tampilan font dan jarak */
+            .css-18e3th9 {
+                padding-top: 2rem;
+            }
+            </style>
+            """
+st.markdown(hide_st_style, unsafe_allow_html=True)
+
+# --- (LANJUTKAN DENGAN KODE API_KEY_KAMU DAN SETERUSNYA DI SINI) ---
+
 # Konfigurasi Dasar
 API_KEY = "2b10b2XlSfeeAceuMozYsl2GO" 
 API_URL = f"https://my-api.plantnet.org/v2/identify/all?api-key={API_KEY}"
