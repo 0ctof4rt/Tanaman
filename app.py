@@ -26,11 +26,18 @@ def get_drive_service():
 
 drive_service = get_drive_service()
 
+from googleapiclient.errors import HttpError # Pastikan baris ini ada di bagian paling atas (bersama import lainnya)
+
 def simpan_ke_drive(file_bytes, nama_file):
-    media = MediaIoBaseUpload(io.BytesIO(file_bytes), mimetype='image/jpeg', resumable=False)
-    file_metadata = {'name': nama_file, 'parents': [FOLDER_ID]}
-    file = drive_service.files().create(body=file_metadata, media_body=media, fields='id').execute()
-    return file.get('id')
+    try:
+        media = MediaIoBaseUpload(io.BytesIO(file_bytes), mimetype='image/jpeg', resumable=False)
+        file_metadata = {'name': nama_file, 'parents': [FOLDER_ID]}
+        file = drive_service.files().create(body=file_metadata, media_body=media, fields='id').execute()
+        return file.get('id')
+    except HttpError as error:
+        # Kode ini akan memaksa website menampilkan alasan asli penolakan Google
+        st.error(f"ALASAN DITOLAK GOOGLE: {error}")
+        return None
 
 st.title("🌱 Endless Plantdex")
 
