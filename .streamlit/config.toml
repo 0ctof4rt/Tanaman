@@ -1,0 +1,15 @@
+[theme]
+# Warna hijau daun untuk tombol dan garis
+primaryColor = "#2e7b32"
+
+# Warna latar belakang utama (hijau sangat muda / krem)
+backgroundColor = "#f2faeb"
+
+# Warna latar belakang sekunder (untuk kotak upload dan menu lipat)
+secondaryBackgroundColor = "#e0f2d8"
+
+# Warna teks (hijau sangat gelap/hitam)
+textColor = "#1e3a1f"
+
+# Pilihan font: "sans serif", "serif", atau "monospace"
+font = "sans serif"
