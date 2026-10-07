@@ -4,80 +4,75 @@ import requests
 API_KEY = "2b10b2XlSfeeAceuMozYsl2GO"
 API_URL = f"https://my-api.plantnet.org/v2/identify/all?api-key={API_KEY}"
 
-# 1. Tentukan Daftar Target Plantdex (Bisa kamu tambah/ubah nanti)
-TARGET_PLANTS = [
-    "Monstera deliciosa", 
-    "Sansevieria trifasciata", 
-    "Aloe vera", 
-    "Epipremnum aureum",
-    "Bougainvillea spectabilis"
-]
-NAMA_UMUM = {
-    "Monstera deliciosa": "Janda Bolong", 
-    "Sansevieria trifasciata": "Lidah Mertua", 
-    "Aloe vera": "Lidah Buaya", 
-    "Epipremnum aureum": "Sirih Gading",
-    "Bougainvillea spectabilis": "Bunga Kertas"
-}
+st.title("🌱 Endless Plantdex")
 
-# 2. Siapkan "Memori Sementara" untuk percobaan tampilan
+# 1. Inisialisasi memori penyimpanan (Endless Collection)
 if 'koleksi' not in st.session_state:
     st.session_state.koleksi = {}
 
-st.title("🌱 Plantdex Collector")
-
-# 3. Membuat Dua Tab (Halaman)
-tab1, tab2 = st.tabs(["🔍 Pindai Tanaman", "📖 Buka Plantdex"])
+tab1, tab2 = st.tabs(["🔍 Pindai Tanaman", "📖 Buku Koleksi"])
 
 with tab1:
-    st.write("Unggah foto tanaman untuk mendeteksinya dan memasukkannya ke Plantdex!")
-    foto = st.file_uploader("Pilih foto dari Galeri/Kamera", type=["jpg", "jpeg", "png"])
+    st.write("Temukan spesies baru di sekitarmu dan tambahkan ke koleksimu!")
+    foto = st.file_uploader("Unggah foto daun, bunga, atau buah", type=["jpg", "jpeg", "png"])
     
     if foto is not None:
-        st.image(foto, caption="Foto siap dipindai...", width=300)
+        st.image(foto, caption="Menunggu pemindaian...", width=300)
         
         if st.button("Deteksi & Tangkap!"):
-            with st.spinner("Sistem sedang menganalisis foto..."):
+            with st.spinner("Menganalisis DNA tanaman..."):
                 files = {'images': (foto.name, foto.getvalue(), foto.type)}
                 data = {'organs': ['auto']}
+                
                 response = requests.post(API_URL, files=files, data=data)
                 
                 if response.status_code == 200:
                     hasil = response.json()
                     if hasil.get('results'):
-                        # Ambil nama ilmiah hasil tebakan terbaik
-                        spesies = hasil['results'][0]['species']['scientificNameWithoutAuthor']
-                        skor = hasil['results'][0]['score'] * 100
+                        # Ambil data spesies terbaik
+                        tebakan_terbaik = hasil['results'][0]
+                        spesies = tebakan_terbaik['species']['scientificNameWithoutAuthor']
                         
-                        st.success(f"Ditemukan: **{spesies}** (Kecocokan: {skor:.1f}%)")
+                        # Coba ambil nama umumnya (jika tersedia di database)
+                        nama_umum_list = tebakan_terbaik['species'].get('commonNames', [])
+                        nama_umum = nama_umum_list[0] if nama_umum_list else "Spesies Eksotis"
                         
-                        # Simpan gambar ke dalam koleksi jika tebakan ada di dalam target Plantdex kita
-                        # atau kita simpan saja apa pun yang ditemukan
-                        st.session_state.koleksi[spesies] = foto.getvalue()
-                        st.info("Buka tab '📖 Buka Plantdex' untuk melihat koleksimu yang baru!")
+                        skor = tebakan_terbaik['score'] * 100
+                        st.success(f"Spesies Ditemukan: **{spesies}** ({skor:.1f}%)")
+                        
+                        # 2. Logika Game: Cek apakah ini spesies baru
+                        if spesies not in st.session_state.koleksi:
+                            # Simpan ke dalam buku memori
+                            st.session_state.koleksi[spesies] = {
+                                'foto': foto.getvalue(),
+                                'nama_umum': nama_umum
+                            }
+                            st.balloons() # Munculkan efek animasi balon!
+                            st.info("✨ SPESIES BARU berhasil ditambahkan ke Plantdex!")
+                        else:
+                            st.info("Kamu sudah memiliki spesies tanaman ini di Plantdex.")
                     else:
-                        st.warning("Tanaman tidak dikenali. Coba foto dari sudut lain.")
+                        st.warning("Gagal mengenali tanaman. Coba foto dari sudut yang lebih jelas.")
                 else:
-                    st.error("Gagal menghubungi server Pl@ntNet.")
+                    st.error("Gagal terhubung ke server Pl@ntNet. Cek kembali API Key.")
 
 with tab2:
     st.header("Buku Koleksi Tanaman")
-    st.write("Kumpulkan semua tanaman target di bawah ini!")
+    
+    # Menghitung total pencapaian
+    total_koleksi = len(st.session_state.koleksi)
+    st.write(f"🏆 Total Spesies Ditemukan: **{total_koleksi}**")
     st.divider()
     
-    # Menampilkan Plantdex dalam bentuk Grid (3 kolom)
-    cols = st.columns(3)
-    for i, target in enumerate(TARGET_PLANTS):
-        col = cols[i % 3] # Membagi tampilan secara rata ke 3 kolom
-        with col:
-            # Jika tanaman target sudah ada di dalam koleksi
-            if target in st.session_state.koleksi:
-                st.image(st.session_state.koleksi[target], use_container_width=True)
-                st.success(f"✅ {NAMA_UMUM.get(target, target)}")
-                st.caption(f"Spesies: {target}")
-            # Jika tanaman target belum ditemukan (Berbayang/Kosong)
-            else:
-                # Menampilkan kotak abu-abu (emoji kotak sebagai placeholder)
-                st.markdown("<div style='text-align: center; padding: 20px; background-color: #333333; border-radius: 10px; color: gray;'><h1>?</h1></div>", unsafe_allow_html=True)
-                st.error(f"❌ Belum Ditemukan")
-                st.caption(NAMA_UMUM.get(target, target))
+    # 3. Menampilkan isi Plantdex secara dinamis
+    if total_koleksi == 0:
+        st.info("Koleksimu masih kosong. Ayo mulai memotret tanaman di sekitarmu!")
+    else:
+        # Menampilkan koleksi dalam grid 3 kolom
+        cols = st.columns(3)
+        for i, (spesies, data_tanaman) in enumerate(st.session_state.koleksi.items()):
+            col = cols[i % 3]
+            with col:
+                st.image(data_tanaman['foto'], use_container_width=True)
+                st.success(f"✅ {data_tanaman['nama_umum']}")
+                st.caption(f"🧬 {spesies}")
