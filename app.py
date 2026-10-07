@@ -1,43 +1,28 @@
 import streamlit as st
 import requests
-
-API_KEY = "2b10b2XlSfeeAceuMozYsl2GO"
-API_URL = f"https://my-api.plantnet.org/v2/identify/all?api-key={API_KEY}"
-
-import streamlit as st
-import requests
-import json
-import io
-from google.oauth2 import service_account
-from googleapiclient.discovery import build
-from googleapiclient.http import MediaIoBaseUpload
+import base64
 
 # Konfigurasi Dasar
-API_KEY = "2b10b2XlSfeeAceuMozYsl2GO"
+API_KEY = "2b10b2XlSfeeAceuMozYsl2GO" 
 API_URL = f"https://my-api.plantnet.org/v2/identify/all?api-key={API_KEY}"
-FOLDER_ID = "1vIfPjGqHCEinbBRR_HEkolAvIUoKbUdH" # Folder ID Google Drive-mu
-
-# Menghubungkan ke Akun Robot Google Drive
-@st.cache_resource
-def get_drive_service():
-    creds_json = json.loads(st.secrets["GCP_CREDENTIALS"])
-    credentials = service_account.Credentials.from_service_account_info(creds_json)
-    return build('drive', 'v3', credentials=credentials)
-
-drive_service = get_drive_service()
-
-from googleapiclient.errors import HttpError # Pastikan baris ini ada di bagian paling atas (bersama import lainnya)
+GAS_URL = "https://script.google.com/macros/s/AKfycbwHaXZp9EftsYg9J4KyB2hJYzGNI9I3Gkz3ETREGSk22_ouQOYkELXdUelL5oZ2H5Z5/exec" # Paste Web app URL dari Tahap 1 di sini
 
 def simpan_ke_drive(file_bytes, nama_file):
     try:
-        media = MediaIoBaseUpload(io.BytesIO(file_bytes), mimetype='image/jpeg', resumable=False)
-        file_metadata = {'name': nama_file, 'parents': [FOLDER_ID]}
-        file = drive_service.files().create(body=file_metadata, media_body=media, fields='id').execute()
-        return file.get('id')
-    except HttpError as error:
-        # Kode ini akan memaksa website menampilkan alasan asli penolakan Google
-        st.error(f"ALASAN DITOLAK GOOGLE: {error}")
-        return None
+        # Mengubah foto menjadi teks (base64) agar mudah dikirim lewat internet
+        file_b64 = base64.b64encode(file_bytes).decode('utf-8')
+        payload = {
+            "fileName": nama_file,
+            "fileData": file_b64
+        }
+        # Mengirim ke Jembatan Google Apps Script
+        response = requests.post(GAS_URL, data=payload)
+        if response.json().get("status") == "sukses":
+            return True
+        return False
+    except Exception as e:
+        st.error(f"Gagal mengirim ke Drive: {e}")
+        return False
 
 st.title("🌱 Endless Plantdex")
 
@@ -71,17 +56,20 @@ with tab1:
                         st.success(f"Spesies Ditemukan: **{spesies}** ({skor:.1f}%)")
                         
                         if spesies not in st.session_state.koleksi:
-                            # 1. Simpan ke memori web
                             st.session_state.koleksi[spesies] = {
                                 'foto': foto.getvalue(),
                                 'nama_umum': nama_umum
                             }
-                            # 2. Simpan foto fisik ke Google Drive
-                            nama_file_drive = f"{spesies} - {nama_umum}.jpg"
-                            simpan_ke_drive(foto.getvalue(), nama_file_drive)
                             
-                            st.balloons()
-                            st.info("✨ SPESIES BARU ditambahkan ke Plantdex & Google Drive!")
+                            # Simpan fisik ke Google Drive melalui Apps Script
+                            nama_file_drive = f"{spesies} - {nama_umum}.jpg"
+                            berhasil = simpan_ke_drive(foto.getvalue(), nama_file_drive)
+                            
+                            if berhasil:
+                                st.balloons()
+                                st.info("✨ SPESIES BARU ditambahkan ke Plantdex & Google Drive!")
+                            else:
+                                st.warning("Spesies masuk ke Plantdex, tapi gagal disimpan ke Drive.")
                         else:
                             st.info("Kamu sudah memiliki spesies tanaman ini di Plantdex.")
                     else:
