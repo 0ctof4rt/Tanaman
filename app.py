@@ -27,7 +27,7 @@ def get_drive_service():
 drive_service = get_drive_service()
 
 def simpan_ke_drive(file_bytes, nama_file):
-    media = MediaIoBaseUpload(io.BytesIO(file_bytes), mimetype='image/jpeg', resumable=True)
+    media = MediaIoBaseUpload(io.BytesIO(file_bytes), mimetype='image/jpeg', resumable=False)
     file_metadata = {'name': nama_file, 'parents': [FOLDER_ID]}
     file = drive_service.files().create(body=file_metadata, media_body=media, fields='id').execute()
     return file.get('id')
